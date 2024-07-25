@@ -3,10 +3,6 @@
 
 #include "MiniFB_enums.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef __ANDROID__
 #define MFB_RGB(r, g, b)        (((uint32_t) r) << 16) | (((uint32_t) g) << 8) | ((uint32_t) b)
@@ -67,7 +63,6 @@ void                mfb_set_mouse_move_callback(struct mfb_window *window, mfb_m
 void                mfb_set_mouse_scroll_callback(struct mfb_window *window, mfb_mouse_scroll_func callback);
 
 // Getters
-const char *        mfb_get_key_name(mfb_key key);
 
 bool                mfb_is_window_active(struct mfb_window *window);
 unsigned            mfb_get_window_width(struct mfb_window *window);
@@ -94,14 +89,5 @@ double              mfb_timer_get_frequency(void);
 double              mfb_timer_get_resolution(void);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef __cplusplus
-}
-
-#if !defined(MINIFB_AVOID_CPP_HEADERS)
-    #include "MiniFB_cpp.h"
-#endif
-
-#endif
 
 #endif

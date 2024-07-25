@@ -2,9 +2,6 @@
 #include <MiniFB_internal.h>
 #include <WindowData.h>
 #include "WindowData_Win.h"
-#if defined(USE_OPENGL_API)
-    #include "gl/MiniFB_GL.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,7 +209,6 @@ WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
         //    break;
         //}
 
-#if !defined(USE_OPENGL_API)
         case WM_PAINT:
         {
             if (window_data && window_data->draw_buffer && window_data_win) {
@@ -222,7 +218,7 @@ WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
             ValidateRect(hWnd, 0x0);
             break;
         }
-#endif
+
         case WM_CLOSE:
         {
             if (window_data) {
@@ -408,11 +404,8 @@ WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 window_data->window_height = HIWORD(lParam);
                 resize_dst(window_data, window_data->window_width, window_data->window_height);
 
-#if !defined(USE_OPENGL_API)
                 BitBlt(window_data_win->hdc, 0, 0, window_data->window_width, window_data->window_height, 0, 0, 0, BLACKNESS);
-#else
-                resize_GL(window_data);
-#endif
+
                 if(window_data->window_width != 0 && window_data->window_height != 0) {
                     width  = (uint32_t) (window_data->window_width  / scale_x);
                     height = (uint32_t) (window_data->window_height / scale_y);
@@ -571,8 +564,6 @@ mfb_open_ex(const char *title, unsigned width, unsigned height, unsigned flags) 
 
     window_data_win->hdc = GetDC(window_data_win->window);
 
-#if !defined(USE_OPENGL_API)
-
     window_data_win->bitmapInfo = (BITMAPINFO *) calloc(1, sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 3);
     if(window_data_win->bitmapInfo == 0x0) {
         free(window_data);
@@ -590,22 +581,12 @@ mfb_open_ex(const char *title, unsigned width, unsigned height, unsigned flags) 
     window_data_win->bitmapInfo->bmiColors[1].rgbGreen   = 0xff;
     window_data_win->bitmapInfo->bmiColors[2].rgbBlue    = 0xff;
 
-#else
-
-    create_GL_context(window_data);
-
-#endif
-
     window_data_win->timer = mfb_timer_create();
 
     mfb_set_keyboard_callback((struct mfb_window *) window_data, keyboard_default);
 
 #if defined(_DEBUG) || defined(DEBUG)
-    #if defined(USE_OPENGL_API)
-        printf("Window created using OpenGL API\n");
-    #else
-        printf("Window created using GDI API\n");
-    #endif
+    printf("Window created using GDI API\n");
 #endif
 
     window_data->is_initialized = true;
@@ -639,18 +620,10 @@ mfb_update_ex(struct mfb_window *window, void *buffer, unsigned width, unsigned 
 
     SWindowData_Win *window_data_win = (SWindowData_Win *) window_data->specific;
 
-#if !defined(USE_OPENGL_API)
-
     window_data_win->bitmapInfo->bmiHeader.biWidth = window_data->buffer_width;
     window_data_win->bitmapInfo->bmiHeader.biHeight = -(LONG) window_data->buffer_height;
     InvalidateRect(window_data_win->window, 0x0, TRUE);
     SendMessage(window_data_win->window, WM_PAINT, 0, 0);
-
-#else
-
-    redraw_GL(window_data, buffer);
-
-#endif
 
     while (window_data->close == false && PeekMessage(&msg, window_data_win->window, 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);
@@ -747,14 +720,10 @@ destroy_window_data(SWindowData *window_data) {
 
     SWindowData_Win *window_data_win = (SWindowData_Win *) window_data->specific;
 
-#if !defined(USE_OPENGL_API)
     if (window_data_win->bitmapInfo != 0x0) {
         free(window_data_win->bitmapInfo);
         window_data_win->bitmapInfo = 0x0;
     }
-#else
-    destroy_GL_context(window_data);
-#endif
 
     if (window_data_win->window != 0 && window_data_win->hdc != 0) {
         ReleaseDC(window_data_win->window, window_data_win->hdc);
@@ -980,10 +949,8 @@ mfb_set_viewport(struct mfb_window *window, unsigned offset_x, unsigned offset_y
 
     calc_dst_factor(window_data, window_data->window_width, window_data->window_height);
 
-#if !defined(USE_OPENGL_API)
     window_data_win = (SWindowData_Win *) window_data->specific;
     BitBlt(window_data_win->hdc, 0, 0, window_data->window_width, window_data->window_height, 0, 0, 0, BLACKNESS);
-#endif
 
     return true;
 }

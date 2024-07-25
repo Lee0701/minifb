@@ -59,7 +59,7 @@ keyboard(struct mfb_window *window, mfb_key key, mfb_key_mod mod, bool isPressed
     if(window) {
         window_title = (const char *) mfb_get_user_data(window);
     }
-    fprintf(stdout, "%s > keyboard: key: %s (pressed: %d) [key_mod: %x]\n", window_title, mfb_get_key_name(key), isPressed, mod);
+    fprintf(stdout, "%s > keyboard: key: %d (pressed: %d) [key_mod: %x]\n", window_title, key, isPressed, mod);
     if(key == KB_KEY_ESCAPE) {
         mfb_close(window);
     }

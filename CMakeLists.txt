@@ -7,26 +7,13 @@ message(STATUS "Processing " ${PROJECT_NAME})
 
 include(GNUInstallDirs)
 
-# Detect iOS
-#--------------------------------------
-if(NOT DEFINED IOS)
-    if(DEFINED CMAKE_SYSTEM_NAME)
-        string(TOLOWER CMAKE_SYSTEM_NAME CMAKE_SYSTEM_NAME_LOWER)
-        if(CMAKE_SYSTEM_NAME_LOWER STREQUAL "ios")
-            set(IOS true)
-        endif()
-    endif()
-endif()
-
 # Sources
 #--------------------------------------
 set(SrcLib
     include/MiniFB.h
-    include/MiniFB_cpp.h
     include/MiniFB_enums.h
 
     src/MiniFB_common.c
-    src/MiniFB_cpp.cpp
     src/MiniFB_internal.c
     src/MiniFB_internal.h
     src/MiniFB_timer.c
@@ -52,19 +39,6 @@ set(SrcMacOSX
 )
 
 #--
-set(SrcIOS
-    src/ios/WindowData_IOS.h
-    src/ios/iOSMiniFB.m
-    src/ios/iOSView.h
-    src/ios/iOSView.m
-    src/ios/iOSViewController.h
-    src/ios/iOSViewController.m
-    src/ios/iOSViewDelegate.h
-    src/ios/iOSViewDelegate.m
-    include/MiniFB_ios.h
-)
-
-#--
 set(SrcWayland
     src/wayland/WaylandMiniFB.c
     src/wayland/WindowData_Way.h
@@ -76,16 +50,6 @@ set(SrcX11
     src/x11/X11MiniFB.c
     src/x11/WindowData_X11.h
     src/MiniFB_linux.c
-)
-
-set(SrcGL
-    src/gl/MiniFB_GL.h
-    src/gl/MiniFB_GL.c
-)
-
-#--
-set(SrcWeb
-    src/web/WebMiniFB.c
 )
 
 # Set features
@@ -100,7 +64,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Code generation options
 #--------------------------------------
 option(MINIFB_BUILD_EXAMPLES "Build minifb example programs" TRUE)
-option(MINIFB_AVOID_CPP_HEADERS "Avoid including C++ Headers" FALSE)
 
 if(APPLE AND NOT IOS)
     option(USE_METAL_API "Build the project using metal API code" ON)
@@ -108,12 +71,7 @@ if(APPLE AND NOT IOS)
 elseif(UNIX)
     if (NOT EMSCRIPTEN)
         option(USE_WAYLAND_API "Build the project using wayland API code" OFF)
-        if(NOT USE_WAYLAND_API)
-            option(USE_OPENGL_API "Build the project using OpenGL API code" ON)
-        endif()
     endif()
-elseif(WIN32)
-    option(USE_OPENGL_API "Build the project using OpenGL API code" ON)
 endif()
 
 # Set GCC/Clang flags
@@ -193,12 +151,6 @@ if(WIN32)
     endif()
     add_definitions(-D_WIN32_WINNT=0x0601)  # Windows 7 (we are in 2020)
 
-    if(USE_OPENGL_API)
-        list(APPEND SrcLib ${SrcGL})
-
-        add_definitions(-DUSE_OPENGL_API)
-    endif()
-
     list(APPEND SrcLib ${SrcWindows})
 
 elseif(IOS)
@@ -224,11 +176,6 @@ elseif(UNIX)
     elseif(EMSCRIPTEN)
         list(APPEND SrcLib ${SrcWeb})
     else()
-        if(USE_OPENGL_API)
-            list(APPEND SrcLib ${SrcGL})
-
-            add_definitions(-DUSE_OPENGL_API)
-        endif()
         list(APPEND SrcLib ${SrcX11})
     endif()
 
@@ -290,20 +237,9 @@ elseif(UNIX)
             #"-lxkbcommon"
             #"-lXrandr" DPI NOT WORKING
         )
-        if(USE_OPENGL_API)
-        target_link_libraries(minifb PRIVATE
-            "-lGL"
-        )
-        endif()
     endif()
 
 elseif(WIN32)
-
-    if(USE_OPENGL_API)
-        target_link_libraries(minifb PRIVATE
-            "Opengl32.lib"
-        )
-    endif()
 
     target_link_libraries(minifb PRIVATE
         "winmm.lib"
@@ -325,32 +261,12 @@ link_libraries(minifb)
 if(MINIFB_BUILD_EXAMPLES)
     if(NOT IOS)
 
-        add_executable(noise
-            tests/noise.c
-        )
-
         add_executable(input_events
             tests/input_events.c
         )
 
-        add_executable(input_events_cpp
-            tests/input_events_cpp.cpp
-        )
-
-        add_executable(multiple_windows
-            tests/multiple_windows.c
-        )
-
         add_executable(hidpi
             tests/hidpi.c
-        )
-
-        add_executable(fullscreen
-            tests/fullscreen.c
-        )
-
-        add_executable(timer
-            tests/timer.c
         )
 
         if(EMSCRIPTEN)
@@ -359,16 +275,10 @@ if(MINIFB_BUILD_EXAMPLES)
                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/web
                     ${CMAKE_CURRENT_BINARY_DIR}
             )
-            add_dependencies(noise web_assets)
-            target_link_options(noise PRIVATE "-sEXPORT_NAME=noise")
             add_dependencies(input_events web_assets)
             target_link_options(input_events PRIVATE "-sEXPORT_NAME=input_events")
             add_dependencies(hidpi web_assets)
             target_link_options(hidpi PRIVATE "-sEXPORT_NAME=hidpi")
-            add_dependencies(multiple_windows web_assets)
-            target_link_options(multiple_windows PRIVATE "-sEXPORT_NAME=multiple_windows")
-            add_dependencies(timer web_assets)
-            target_link_options(timer PRIVATE "-sEXPORT_NAME=timer")
         endif()
 
     else()
@@ -396,10 +306,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(TARGET minifb PROPERTY FOLDER "Libs")
 
 if(MINIFB_BUILD_EXAMPLES)
-    set_property(TARGET noise PROPERTY FOLDER "Tests")
     set_property(TARGET input_events PROPERTY FOLDER "Tests")
-    set_property(TARGET input_events_cpp PROPERTY FOLDER "Tests")
-    set_property(TARGET multiple_windows PROPERTY FOLDER "Tests")
     set_property(TARGET hidpi PROPERTY FOLDER "Tests")
 endif()
 

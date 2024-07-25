@@ -19,10 +19,6 @@
 #include "WindowData.h"
 #include "WindowData_X11.h"
 
-#if defined(USE_OPENGL_API)
-    #include <gl/MiniFB_GL.h>
-#endif
-
 static Atom s_delete_window_atom;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -191,14 +187,7 @@ mfb_open_ex(const char *title, unsigned width, unsigned height, unsigned flags) 
     s_delete_window_atom = XInternAtom(window_data_x11->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(window_data_x11->display, window_data_x11->window, &s_delete_window_atom, 1);
 
-#if defined(USE_OPENGL_API)
-    if(create_GL_context(window_data) == false) {
-        return 0x0;
-    }
-
-#else
     window_data_x11->image = XCreateImage(window_data_x11->display, CopyFromParent, depth, ZPixmap, 0, 0x0, width, height, 32, width * 4);
-#endif
 
     XSetWMNormalHints(window_data_x11->display, window_data_x11->window, &sizeHints);
     XClearWindow(window_data_x11->display, window_data_x11->window);
@@ -339,9 +328,6 @@ processEvent(SWindowData *window_data, XEvent *event) {
             window_data->window_height = event->xconfigure.height;
             resize_dst(window_data, event->xconfigure.width, event->xconfigure.height);
 
-#if defined(USE_OPENGL_API)
-            resize_GL(window_data);
-#else
             SWindowData_X11 *window_data_x11 = (SWindowData_X11 *) window_data->specific;
             if(window_data_x11->image_scaler != 0x0) {
                 window_data_x11->image_scaler->data = 0x0;
@@ -351,7 +337,7 @@ processEvent(SWindowData *window_data, XEvent *event) {
                 window_data_x11->image_scaler_height = 0;
             }
             XClearWindow(window_data_x11->display, window_data_x11->window);
-#endif
+
             kCall(resize_func, window_data->window_width, window_data->window_height);
         }
         break;
@@ -428,21 +414,15 @@ mfb_update_ex(struct mfb_window *window, void *buffer, unsigned width, unsigned 
         return STATE_INVALID_BUFFER;
     }
 
-#if !defined(USE_OPENGL_API)
     SWindowData_X11 *window_data_x11 = (SWindowData_X11 *) window_data->specific;
     bool different_size = false;
-#endif
 
     if(window_data->buffer_width != width || window_data->buffer_height != height) {
         window_data->buffer_width  = width;
         window_data->buffer_stride = width * 4;
         window_data->buffer_height = height;
-#if !defined(USE_OPENGL_API)
         different_size = true;
-#endif
     }
-
-#if !defined(USE_OPENGL_API)
 
     if (different_size || window_data->buffer_width != window_data->dst_width || window_data->buffer_height != window_data->dst_height) {
         if (window_data_x11->image_scaler_width != window_data->dst_width || window_data_x11->image_scaler_height != window_data->dst_height) {
@@ -476,12 +456,6 @@ mfb_update_ex(struct mfb_window *window, void *buffer, unsigned width, unsigned 
         XPutImage(window_data_x11->display, window_data_x11->window, window_data_x11->gc, window_data_x11->image, 0, 0, window_data->dst_offset_x, window_data->dst_offset_y, window_data->dst_width, window_data->dst_height);
     }
     XFlush(window_data_x11->display);
-
-#else
-
-    redraw_GL(window_data, buffer);
-
-#endif
 
     processEvents(window_data);
 
@@ -570,16 +544,12 @@ destroy_window_data(SWindowData *window_data)  {
         if (window_data->specific != 0x0) {
             SWindowData_X11   *window_data_x11 = (SWindowData_X11 *) window_data->specific;
 
-#if defined(USE_OPENGL_API)
-            destroy_GL_context(window_data);
-#else
             if (window_data_x11->image != 0x0) {
                 window_data_x11->image->data = 0x0;
                 XDestroyImage(window_data_x11->image);
                 XDestroyWindow(window_data_x11->display, window_data_x11->window);
                 XCloseDisplay(window_data_x11->display);
             }
-#endif
 
             mfb_timer_destroy(window_data_x11->timer);
             memset(window_data_x11, 0, sizeof(SWindowData_X11));
